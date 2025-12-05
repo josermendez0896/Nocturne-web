@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nocturne Gallery: Restricted Access</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+
+    <canvas id="vizCanvas"></canvas>
+
+    <div id="sleepOverlay">
+        <h1>SISTEMA EN SUSPENSIÓN</h1>
+        <p>Presione cualquier tecla o toque para reanudar la sesión.</p>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <h1>Nocturne Gallery <span class="version">V27.1</span></h1>
+            <button id="btnAudio" class="audio-control" onclick="audioEngine.toggle()">
+                <i class="fas fa-volume-up"></i>
+            </button>
+        </div>
+        
+        <div class="header-right">
+            <button id="btnAdmin" class="btn-config" style="display:none;"><i class="fas fa-user-shield"></i> ADMIN</button>
+            <button id="btnBackup" onclick="dataMancer.exportData()" class="btn-config"><i class="fas fa-download"></i> BACKUP</button>
+            <label for="importFile" class="btn-config"><i class="fas fa-upload"></i> IMPORTAR</label>
+            <input type="file" id="importFile" accept=".json" style="display:none;">
+        </div>
+    </header>
+
+    <section class="configuration">
+        <h2>CONFIGURACIÓN DE ARTEFACTO</h2>
+        <div class="control-deck">
+            
+            <div id="dropZone" class="drop-zone">
+                <input type="file" id="inpFile" accept="image/*" style="display:none;">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Arrastra tu imagen aquí</p>
+            </div>
+
+            <div class="input-group">
+                <label for="inpTitle">TÍTULO DEL ARTEFACTO</label>
+                <input type="text" id="inpTitle" placeholder="Ej: Retrato del Operador 001">
+            </div>
+
+            <div class="input-group">
+                <label for="selFilter">FILTRO DE PROCESAMIENTO</label>
+                <select id="selFilter">
+                    <option value="none">Sin Filtro</option>
+                    <option value="noir">Noir (Grises Contrastados)</option>
+                    <option value="vampire">Vampire (Rojo Dominante)</option>
+                    <option value="glitch">Glitch (Estática Digital)</option>
+                </select>
+            </div>
+
+            <button id="btnUpload"><i class="fas fa-upload"></i> PROCESAR Y GUARDAR</button>
+        </div>
+    </section>
+
+    <section class="gallery">
+        <h2>REGISTRO DE ARTEFACTOS</h2>
+        
+        <div class="gallery-controls">
+            <div class="input-group">
+                <label for="inpSearch">BÚSQUEDA CYBERNÉTICA</label>
+                <input type="text" id="inpSearch" placeholder="Buscar por título...">
+            </div>
+            
+            <div class="input-group">
+                <label for="selSearchFilter">FILTRO POR EFECTO</label>
+                <select id="selSearchFilter">
+                    <option value="all">TODOS</option>
+                    <option value="none">Sin Filtro</option>
+                    <option value="noir">Noir</option>
+                    <option value="vampire">Vampire</option>
+                    <option value="glitch">Glitch</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="selSortOrder">ORDENAR POR</label>
+                <select id="selSortOrder">
+                    <option value="newest">Fecha (Más Reciente)</option>
+                    <option value="oldest">Fecha (Más Antiguo)</option>
+                    <option value="titleAsc">Título (A-Z)</option>
+                    <option value="titleDesc">Título (Z-A)</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="galleryGrid" class="gallery-grid">
+            </div>
+    </section>
+    
+    <footer>
+        <div class="storage-bar">
+            <span>Uso de Almacenamiento Local (IndexedDB)</span>
+            <div class="bar-container">
+                <div id="storageFill" class="bar-fill" style="width: 1%;"></div>
+            </div>
+        </div>
+        <p>© 2025 Nocturne Gallery. Acceso Restringido.</p>
+    </footer>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-content">
+            <h2>ACCESO AL SISTEMA</h2>
+            <span id="authMessage" class="message-area"></span>
+            <div class="input-group">
+                <label for="authUsername">ID DE OPERADOR</label>
+                <input type="text" id="authUsername" placeholder="admin" value="admin" autocomplete="username">
+            </div>
+            <div class="input-group">
+                <label for="authPassword">CLAVE CRIPTOGRÁFICA</label>
+                <input type="password" id="authPassword" placeholder="...." autocomplete="current-password">
+            </div>
+            <button onclick="authMancer.attemptLogin()" class="btn-primary">
+                <i class="fas fa-sign-in-alt"></i> ACCESO AL SISTEMA
+            </button>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal">
+        <div class="modal-content view-content">
+            <div class="view-container">
+                <button id="btnPrev" class="carousel-btn prev" disabled><i class="fas fa-chevron-left"></i></button>
+                <img id="viewImg" src="" alt="Artefacto" class="view-image">
+                <button id="btnNext" class="carousel-btn next" disabled><i class="fas fa-chevron-right"></i></button>
+            </div>
+
+            <div id="viewInfo" class="view-info">
+                </div>
+            
+            <button onclick="gallery.closeModal()" class="btn-cerrar">ACEPTAR / CERRAR</button>
+        </div>
+    </div>
+    
+    <div id="adminModal" class="modal">
+        <div class="modal-content admin-content">
+            <h2><i class="fas fa-user-shield"></i> GESTIÓN DE OPERADORES Y SISTEMA</h2>
+            <span id="adminMessage" class="message-area"></span>
+            
+            <div class="admin-grid">
+                
+                <div class="admin-section log-section">
+                    <h3>LOG DE AUDITORÍA (Últimos 50 eventos)</h3>
+                    <div class="log-controls">
+                        <button id="btnShowAudit"><i class="fas fa-sync-alt"></i> Recargar Log</button>
+                        <button id="btnCleanAudit" class="btn-danger"><i class="fas fa-eraser"></i> Borrar Log</button>
+                    </div>
+                    <div class="log-table-container">
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Mensaje</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="admin-section user-management-section">
+                    
+                    <div class="config-group user-list">
+                        <h4>Operadores Registrados</h4>
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Operador</th>
+                                    <th>Rol</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                    
+                    <button id="btnShowNewUser" class="btn-success"><i class="fas fa-user-plus"></i> CREAR NUEVO OPERADOR</button>
+                    
+                    <div id="newUserForm" class="config-group" style="display: none;">
+                        <h4>Creación de Nuevo Operador</h4>
+                        <input type="text" id="newUsername" placeholder="ID de Operador (Usuario)">
+                        <input type="password" id="newPassword" placeholder="Clave Criptográfica">
+                        <select id="newUserRole">
+                            <option value="viewer">VIEWER (Solo Ver)</option>
+                            <option value="uploader">UPLOADER (Ver y Subir)</option>
+                            <option value="admin">ADMIN (Control Total)</option>
+                        </select>
+                        <span id="newUserMessage" class="message-area"></span>
+                        <div class="button-row">
+                            <button id="btnCreateUser" class="btn-success"><i class="fas fa-save"></i> Crear</button>
+                            <button id="btnCancelNewUser" class="btn-secondary"><i class="fas fa-times"></i> Cancelar</button>
+                        </div>
+                    </div>
+                    
+                    <hr style="border-color: #555;"> 
+
+                    <div class="config-group">
+                        <h4>Cambio de Clave Personal (Yo)</h4>
+                        <input type="password" id="adminNewPassword" placeholder="Nueva Contraseña" autocomplete="new-password">
+                        <input type="password" id="adminConfirmPassword" placeholder="Confirmar Nueva Contraseña" autocomplete="new-password">
+                        <button id="btnChangePasswordSelf"><i class="fas fa-key"></i> Cambiar Clave Personal</button>
+                    </div>
+                    
+                    <div class="config-group forced-reset">
+                        <h4>Restablecimiento de Clave (Cédula)</h4>
+                        <input type="text" id="resetUsername" placeholder="ID de Operador a Forzar">
+                        <input type="password" id="resetNewPassword" placeholder="Nueva Clave Criptográfica">
+                        <button id="btnForcePasswordReset" class="btn-danger"><i class="fas fa-lock-open"></i> FORZAR RESTABLECIMIENTO</button>
+                    </div>
+
+                </div>
+            </div>
+
+            <button id="btnCloseAdmin" class="btn-cerrar">CERRAR PESTAÑA</button>
+        </div>
+    </div>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>
